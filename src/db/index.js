@@ -5,10 +5,17 @@ const pool = new Pool({
   host: config.db.host,
   port: config.db.port,
   user: config.db.user,
-  password: config.db.password,
+  password: String(config.db.password), // ضمان إن الباسورد string دايماً
   database: config.db.database,
   max: config.db.max,
-  idleTimeoutMillis: config.db.idleTimeoutMillis
+  idleTimeoutMillis: config.db.idleTimeoutMillis,
+  ssl: {
+    rejectUnauthorized: false // مطلوب لـ Supabase
+  }
+});
+
+pool.on('connect', () => {
+  console.log('✅ Connected to PostgreSQL database');
 });
 
 pool.on('error', (err) => {
