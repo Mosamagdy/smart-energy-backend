@@ -1,0 +1,61 @@
+const express = require('express');
+const router = express.Router();
+const controller = require('./warehouse.controller');
+const { authMiddleware } = require('../../middlewares/auth');
+const roleMiddleware = require('../../middlewares/role');
+
+// All routes require authentication
+router.use(authMiddleware);
+
+// Write roles: super_admin, finance_manager, project_manager, dept_head (Warehouse Manager)
+const writeRoles = ['super_admin', 'finance_manager', 'project_manager', 'warehouse_manager', 'inventory_manager'];
+// Read roles: super_admin, finance_manager, general_manager, project_manager, dept_head, engineer, contract_dept_head
+const readRoles = ['super_admin', 'finance_manager', 'general_manager', 'dep_pr_manager', 'warehouse_manager', 'inventory_manager', 'engineer', 'contract_dept_head' , 'project_manager'];
+
+// ============================================================================
+// IMPORTANT: Static routes MUST be registered BEFORE dynamic routes (/:id)
+// ============================================================================
+
+// GET /api/warehouses/summary (static route - MUST be before /:id)
+router.get('/summary',
+  roleMiddleware(readRoles),
+  controller.getWarehousesSummary
+);
+
+// POST /api/warehouses (create warehouse)
+router.post('/',
+  roleMiddleware(writeRoles),
+  controller.createWarehouse
+);
+
+// GET /api/warehouses (get all warehouses with filters)
+router.get('/',
+  roleMiddleware(readRoles),
+  controller.getAllWarehouses
+);
+
+// GET /api/warehouses/:id (dynamic route - MUST be after static routes)
+router.get('/:id',
+  roleMiddleware(readRoles),
+  controller.getWarehouseById
+);
+
+// PUT /api/warehouses/:id (update warehouse)
+router.put('/:id',
+  roleMiddleware(writeRoles),
+  controller.updateWarehouse
+);
+
+// DELETE /api/warehouses/:id (delete warehouse)
+router.delete('/:id',
+  roleMiddleware(writeRoles),
+  controller.deleteWarehouse
+);
+
+// GET /api/warehouses/:id/stock (get warehouse stock)
+router.get('/:id/stock',
+  roleMiddleware(readRoles),
+  controller.getWarehouseStock
+);
+
+module.exports = router;
