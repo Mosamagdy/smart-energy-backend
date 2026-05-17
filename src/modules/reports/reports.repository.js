@@ -176,7 +176,7 @@ async function getIncomeStatement(startDate, endDate) {
      ) jl ON jl.account_id = c.id
      WHERE (
          c.is_active = true
-         OR c.id IN (SELECT DISTINCT account_id FROM journal_entry_lines jl
+         OR c.id IN (SELECT DISTINCT jl.account_id FROM journal_entry_lines jl
                      JOIN journal_entries je ON je.id = jl.journal_entry_id
                      WHERE ($1::date IS NULL OR je.entry_date >= $1::date)
                        AND ($2::date IS NULL OR je.entry_date <= $2::date))
@@ -191,7 +191,7 @@ async function getIncomeStatement(startDate, endDate) {
            SELECT DISTINCT parent_id FROM chart_of_accounts
            WHERE parent_id IS NOT NULL AND is_active = true
          )
-         OR c.id IN (SELECT DISTINCT account_id FROM journal_entry_lines jl
+         OR c.id IN (SELECT DISTINCT jl.account_id FROM journal_entry_lines jl
                      JOIN journal_entries je ON je.id = jl.journal_entry_id
                      WHERE ($1::date IS NULL OR je.entry_date >= $1::date)
                        AND ($2::date IS NULL OR je.entry_date <= $2::date))

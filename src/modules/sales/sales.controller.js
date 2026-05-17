@@ -242,8 +242,6 @@ async function getSalesInvoices(req, res) {
       if (filters[key] === undefined) delete filters[key];
     });
 
-    console.log('[getSalesInvoices] Fetching invoices with filters:', filters);
-
     const invoices = await salesService.getSalesInvoices(filters);
 
     return res.status(200).json({

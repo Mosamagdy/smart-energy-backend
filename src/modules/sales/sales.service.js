@@ -3,7 +3,7 @@ const { generateSalesInvoicePDF } = require('../../services/sales-invoice-pdf.se
 const repo = require('./sales.repository');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:Mosa123@localhost:5432/system'
+  connectionString: process.env.DATABASE_URL
 });
 
 // ============================================================================
