@@ -3,7 +3,14 @@ const { generateSalesInvoicePDF } = require('../../services/sales-invoice-pdf.se
 const repo = require('./sales.repository');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  host: process.env.DATABASE_HOST,
+  port: Number(process.env.DATABASE_PORT),
+  user: process.env.DATABASE_USER,
+  password: process.env.DATABASE_PASSWORD,
+  database: process.env.DATABASE_NAME,
+  max: Number(process.env.DATABASE_MAX_POOL_SIZE) || 10,
+  idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT) || 30000,
+  ssl: { rejectUnauthorized: false }
 });
 
 // ============================================================================
