@@ -5,6 +5,7 @@
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = 'onboarding@resend.dev';
+const TO_OVERRIDE = 'mosaamagdey@gmail.com'; // مؤقت للتجربة
 
 async function sendEmail({ to, subject, html }) {
   const response = await fetch('https://api.resend.com/emails', {
@@ -15,7 +16,7 @@ async function sendEmail({ to, subject, html }) {
     },
     body: JSON.stringify({
       from: FROM_EMAIL,
-      to: [to],
+      to: [TO_OVERRIDE || to], // Override recipient for testing
       subject,
       html,
     }),
