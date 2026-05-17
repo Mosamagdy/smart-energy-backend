@@ -12,6 +12,9 @@ module.exports = {
     max: Number(process.env.DATABASE_MAX_POOL_SIZE ),
     idleTimeoutMillis: Number(process.env.DATABASE_IDLE_TIMEOUT)
   },
+    ssl: {
+    rejectUnauthorized: false  // ضروري مع Supabase pooler
+  },
   jwt: {
     secret: process.env.JWT_SECRET ,
     expiresIn: process.env.JWT_EXPIRES_IN 

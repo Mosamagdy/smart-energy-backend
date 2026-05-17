@@ -651,8 +651,7 @@ async function finalizePurchaseInvoice(invoiceId, currentUser) {
     await client_db.query('BEGIN');
     
     // 1. Get invoice with items
-    console.log(`[Finalize Purchase] === STARTING FINALIZATION ===`);
-    console.log(`[Finalize Purchase] Invoice ID: ${invoiceId}`);
+
     
     const invoice = await repo.getPurchaseInvoiceWithItems(invoiceId);
     if (!invoice) {
@@ -661,9 +660,6 @@ async function finalizePurchaseInvoice(invoiceId, currentUser) {
       throw err;
     }
     
-    console.log(`[Finalize Purchase] Invoice found: ${invoice.invoice_number}`);
-    console.log(`[Finalize Purchase] Status: ${invoice.status}`);
-    console.log(`[Finalize Purchase] Items count: ${invoice.items?.length || 0}`);
     
     if (invoice.status === 'final') {
       const err = new Error('الفاتورة معتمدة بالفعل');
@@ -680,17 +676,11 @@ async function finalizePurchaseInvoice(invoiceId, currentUser) {
     }
     
     // 2. Increase stock for each item
-    console.log(`[Finalize Purchase] === INCREASING STOCK ===`);
     
     for (const item of invoice.items) {
       const qty = parseFloat(item.quantity);
       const inventoryItemId = parseInt(item.inventory_item_id);
       const warehouseId = parseInt(item.warehouse_id);
-      
-      console.log(`[Finalize Purchase] Processing item: ${item.item_name_ar || item.item_name}`);
-      console.log(`  - Inventory Item ID: ${inventoryItemId}`);
-      console.log(`  - Warehouse ID: ${warehouseId}`);
-      console.log(`  - Quantity: ${qty}`);
       
       if (isNaN(qty) || qty <= 0) {
         const err = new Error(`كمية غير صحيحة للصنف ${item.item_name_ar || item.item_name}`);
@@ -728,22 +718,17 @@ async function finalizePurchaseInvoice(invoiceId, currentUser) {
          VALUES ($1, 'in', $2, $3, $4, NOW())`,
         [inventoryItemId, qty, currentUser.id, `Stock increase from Purchase Invoice ${invoice.invoice_number}`]
       );
-      
-      console.log(`[Finalize Purchase] ✅ Added ${qty} units of ${item.item_name_ar || item.item_name} to warehouse ${warehouseId}`);
     }
     
     // 3. Create journal entry (if not already created)
     if (!invoice.journal_entry_id) {
-      console.log(`[Finalize Purchase] === CREATING JOURNAL ENTRY ===`);
       
       const supplierResult = await client_db.query(
         `SELECT coa_account_code FROM suppliers WHERE id = $1`,
         [invoice.supplier_id]
       );
       const supplierCoaCode = supplierResult.rows[0]?.coa_account_code || '21301';
-      
-      console.log(`[Finalize Purchase] Supplier COA Code: ${supplierCoaCode}`);
-      
+            
       const supplierAccount = await coaRepo.getAccountByCode(supplierCoaCode);
       const vatInputAccount = await coaRepo.getAccountByCode('2220102');
       const inventoryAccount = await coaRepo.getAccountByCode('1201');
@@ -766,11 +751,6 @@ async function finalizePurchaseInvoice(invoiceId, currentUser) {
       const subtotal = parseFloat(invoice.subtotal) || 0;
       const taxAmount = parseFloat(invoice.tax_amount) || 0;
       const totalAmount = parseFloat(invoice.total_amount) || 0;
-      
-      console.log(`[Finalize Purchase] Financial amounts:`);
-      console.log(`  - Subtotal: ${subtotal}`);
-      console.log(`  - Tax: ${taxAmount}`);
-      console.log(`  - Total: ${totalAmount}`);
       
       // Create journal entry
       const entryResult = await client_db.query(
@@ -810,11 +790,6 @@ async function finalizePurchaseInvoice(invoiceId, currentUser) {
         `UPDATE purchase_invoices SET journal_entry_id = $1 WHERE id = $2`,
         [journalEntryId, invoice.id]
       );
-      
-      console.log(`[Finalize Purchase] ✅ Journal Entry created: ${journalEntryId}`);
-      console.log(`[Finalize Purchase]   DEBIT Inventory (1201): ${subtotal}`);
-      console.log(`[Finalize Purchase]   DEBIT VAT Input (2220102): ${taxAmount}`);
-      console.log(`[Finalize Purchase]   CREDIT Supplier (${supplierCoaCode}): ${totalAmount}`);
     }
     
     // 4. Update invoice status to 'final'
@@ -824,9 +799,7 @@ async function finalizePurchaseInvoice(invoiceId, currentUser) {
     );
     
     await client_db.query('COMMIT');
-    
-    console.log(`[Finalize Purchase] ✅ Invoice ${invoiceId} finalized successfully`);
-    
+        
     return result.rows[0];
     
   } catch (error) {

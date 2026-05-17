@@ -74,7 +74,7 @@ router.get('/invoices/:id',
 
 // POST /api/purchasing/invoices/:id/finalize
 router.post('/invoices/:id/finalize',
-  roleMiddleware(['super_admin', 'finance_manager', 'procurement_manager']),
+  roleMiddleware(['super_admin', 'finance_manager', 'procurement_manager', 'general_manager']),
   controller.finalizePurchaseInvoice
 );
 
