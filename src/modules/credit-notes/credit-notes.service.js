@@ -89,12 +89,12 @@ async function createCreditNote(data, currentUser) {
     }
 
     // VAT Output account (22101) - reverse the VAT for returns
-    const vatAccount = await coaRepo.getAccountByCode('22101');
-    if (!vatAccount) {
-      const err = new Error('حساب الضريبة (22101) غير موجود');
-      err.statusCode = 500;
-      throw err;
-    }
+  const vatAccount = await coaRepo.getAccountByCode('2220101');
+  if (!vatAccount) {
+    const err = new Error('حساب الضريبة (2220101) غير موجود');
+    err.statusCode = 500;
+    throw err;
+  }
 
     // Client AR Account - Get account ID from chart_of_accounts
     const arAccount = await client_db.query(
