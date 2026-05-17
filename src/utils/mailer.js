@@ -1,19 +1,30 @@
-const nodemailer = require('nodemailer');
-
 /**
- * Creates a reusable SMTP transporter from .env config
- * SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+ * Mailer utility using Resend HTTP API
+ * No SMTP needed - works on Railway
  */
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: Number(process.env.SMTP_PORT) === 465,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM_EMAIL = 'onboarding@resend.dev';
+
+async function sendEmail({ to, subject, html }) {
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({
+      from: FROM_EMAIL,
+      to: [to],
+      subject,
+      html,
+    }),
   });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Resend error: ${JSON.stringify(error)}`);
+  }
 }
 
 /**
@@ -22,10 +33,7 @@ function createTransporter() {
  * @param {string} otpCode - 6-digit code
  */
 async function sendOtpEmail(to, otpCode) {
-  const transporter = createTransporter();
-
-  await transporter.sendMail({
-    from: `"نظام الطاقة الذكي" <${process.env.SMTP_FROM}>`,
+  await sendEmail({
     to,
     subject: 'رمز التحقق الخاص بك',
     html: `
@@ -53,23 +61,18 @@ async function sendOtpEmail(to, otpCode) {
   });
 }
 
-
 /**
  * Sends welcome email with login credentials (for employees and clients)
- * @param {string} to         - recipient email
- * @param {string} body       - email body (HTML)
- * @param {string} subject    - email subject
+ * @param {string} to      - recipient email
+ * @param {string} body    - email body (HTML)
+ * @param {string} subject - email subject
  */
 async function sendWelcomeEmail(to, body, subject = 'مرحباً بكم في شركة Smart Energy') {
-  const transporter = createTransporter();
-
-  await transporter.sendMail({
-    from: `"شركة Smart Energy للطاقة" <${process.env.SMTP_FROM}>`,
+  await sendEmail({
     to,
     subject: subject || 'مرحباً بكم في شركة Smart Energy - بيانات حسابكم',
     html: body,
   });
 }
-
 
 module.exports = { sendOtpEmail, sendWelcomeEmail };
