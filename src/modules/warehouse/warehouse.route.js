@@ -22,7 +22,7 @@ router.get('/summary',
   controller.getWarehousesSummary
 );
 // ✅ GET /api/inventory/warehouses
-router.get('/warehouses', authenticate, async (req, res) => {
+router.get('/warehouses', authMiddleware, async (req, res) => {
   try {
     const { item_id } = req.query;
 
