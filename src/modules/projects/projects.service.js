@@ -371,25 +371,31 @@ async function updateProjectStatus(id, status, currentUser) {
  * CRITICAL: PM must belong to same department as project
  */
 async function assignProjectManager(projectId, managerUserId, currentUser) {
-  // Verify current user is projects dept_head
+  // Get user role and check permissions
   const userRole = (currentUser.role || currentUser.role_name || '').toLowerCase();
   
-  if (userRole !== 'dep_pr_manager', 'general_manager') {
-    const err = new Error('فقط مدير إدارة المشاريع يمكنه تعيين مديري المشاريع');
+  // Allowed roles: dep_pr_manager (Projects Dept Manager), general_manager, super_admin
+  const allowedRoles = ['dep_pr_manager', 'general_manager', 'super_admin'];
+  
+  if (!allowedRoles.includes(userRole)) {
+    const err = new Error('غير مصرح لك بتعيين مديري المشاريع. هذه الصلاحية متاحة فقط لمدير إدارة المشاريع، المدير العام، أو السوبر أدمن');
     err.statusCode = 403;
     throw err;
   }
 
-  // Verify the department is projects department
-  const { rows: [dept] } = await query(
-    `SELECT name FROM departments WHERE id = $1`,
-    [currentUser.department_id]
-  );
+  // For dep_pr_manager and general_manager only: verify department is projects department
+  // super_admin bypasses this check
+  if (userRole !== 'super_admin') {
+    const { rows: [dept] } = await query(
+      `SELECT name FROM departments WHERE id = $1`,
+      [currentUser.department_id]
+    );
 
-  if (!dept || (!dept.name.toLowerCase().includes('projects') && !dept.name.includes('مشاريع'))) {
-    const err = new Error('هذه الصلاحية متاحة فقط لمدير إدارة المشاريع');
-    err.statusCode = 403;
-    throw err;
+    if (!dept || (!dept.name.toLowerCase().includes('projects') && !dept.name.includes('مشاريع'))) {
+      const err = new Error('هذه الصلاحية متاحة فقط لمدير إدارة المشاريع أو المدير العام');
+      err.statusCode = 403;
+      throw err;
+    }
   }
 
   // Get project details to check department match
@@ -420,6 +426,7 @@ async function assignProjectManager(projectId, managerUserId, currentUser) {
   }
 
   // CRITICAL VALIDATION: PM must belong to same department as project
+  // super_admin can assign across departments (but still validations apply)
   if (Number(manager.department_id) !== Number(project.department_id)) {
     const err = new Error('لا يمكن تعيين مدير مشروع من إدارة أخرى - يجب أن يكون من نفس الإدارة');
     err.statusCode = 400;
@@ -445,14 +452,25 @@ async function assignProjectManager(projectId, managerUserId, currentUser) {
     icon: '/notifications/assignment.png'
   });
 
-  // Notify GM
+  // Notify GM (and super_admin if not the one who made the assignment)
   await notifyRole('general_manager', {
     title: 'تم تعيين مدير مشروع',
-    message: `تم تعيين ${manager.first_name} ${manager.last_name} مديرًا لمشروع "${project.name}"`,
+    message: `تم تعيين ${manager.first_name} ${manager.last_name} مديرًا لمشروع "${project.name}" بواسطة ${currentUser.first_name || ''} ${currentUser.last_name || ''}`,
     type: 'info',
     entity_type: 'project',
     entity_id: projectId
   });
+
+  // Also notify super_admins if current user is not one
+  if (userRole !== 'super_admin') {
+    await notifyRole('super_admin', {
+      title: 'تم تعيين مدير مشروع جديد',
+      message: `تم تعيين ${manager.first_name} ${manager.last_name} مديرًا لمشروع "${project.name}" بواسطة ${currentUser.first_name || ''} ${currentUser.last_name || ''}`,
+      type: 'info',
+      entity_type: 'project',
+      entity_id: projectId
+    });
+  }
 
   return updatedProject;
 }
