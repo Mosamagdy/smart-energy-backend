@@ -141,7 +141,7 @@ router.patch(
 // POST /api/projects/:id/assign-manager - Assign PM (projects dept_head only)
 router.post(
   '/:id(\\d+)/assign-manager',
-  roleMiddleware(['super_admin' , ...PROJECT_WRITE_ROLES]),
+  roleMiddleware(['super_admin' , 'general_manager' , ...PROJECT_WRITE_ROLES]),
   controller.assignProjectManager
 );
 

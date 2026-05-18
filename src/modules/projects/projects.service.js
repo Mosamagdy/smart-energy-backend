@@ -374,7 +374,7 @@ async function assignProjectManager(projectId, managerUserId, currentUser) {
   // Verify current user is projects dept_head
   const userRole = (currentUser.role || currentUser.role_name || '').toLowerCase();
   
-  if (userRole !== 'dep_pr_manager') {
+  if (userRole !== 'dep_pr_manager', 'general_manager') {
     const err = new Error('فقط مدير إدارة المشاريع يمكنه تعيين مديري المشاريع');
     err.statusCode = 403;
     throw err;
