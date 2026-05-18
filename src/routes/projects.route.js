@@ -25,6 +25,7 @@ const PROJECT_WRITE_ROLES = [
   'dep_pr_manager',        // legacy (still present)
   'mc_manager',
   'qs_manager',
+  'general_manager',        // GM can assign PMs but not manage project details
 ];
 
 // Read-only viewers (must not see UI actions that 403)
@@ -140,7 +141,7 @@ router.patch(
 // POST /api/projects/:id/assign-manager - Assign PM (projects dept_head only)
 router.post(
   '/:id(\\d+)/assign-manager',
-  roleMiddleware(['super_admin', ...PROJECT_WRITE_ROLES]),
+  roleMiddleware(['super_admin' , ...PROJECT_WRITE_ROLES]),
   controller.assignProjectManager
 );
 
