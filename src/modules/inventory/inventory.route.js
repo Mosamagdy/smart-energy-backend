@@ -65,6 +65,11 @@ router.get('/',
   controller.getAllItems
 );
 
+// ✅ GET /api/inventory/warehouses (static - MUST be before /:id)
+router.get('/warehouses',
+  roleMiddleware(readRoles),
+  controller.getWarehouses
+);
 // GET /api/inventory/:id (dynamic route - MUST be after static routes)
 router.get('/:id',
   roleMiddleware(readRoles),

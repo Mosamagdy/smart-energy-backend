@@ -109,7 +109,7 @@ async function updateSalesInvoice(id, data) {
     'notes',
     'pdf_path',
     'is_tax_invoice',
-    'tax_invoice_id'
+    'tax_invoice_id',
   ];
   
   const keys = Object.keys(data).filter(key => allowedFields.includes(key));

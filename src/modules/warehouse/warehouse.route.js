@@ -21,6 +21,32 @@ router.get('/summary',
   roleMiddleware(readRoles),
   controller.getWarehousesSummary
 );
+// ✅ GET /api/inventory/warehouses
+router.get('/warehouses', authenticate, async (req, res) => {
+  try {
+    const { item_id } = req.query;
+
+    if (item_id) {
+      // الحالة القديمة — مخازن صنف معين
+      const stock = await inventoryRepo.getAvailableStock(null, item_id);
+      return res.json({ data: { warehouses: stock || [] } });
+    }
+
+    // ✅ بدون item_id — كل المخازن النشطة
+    const result = await query(
+      `SELECT id, warehouse_code, warehouse_name, warehouse_name_ar
+       FROM warehouses 
+       WHERE is_active = true 
+       ORDER BY warehouse_name ASC`
+    );
+
+    return res.json({ data: { warehouses: result.rows } });
+
+  } catch (err) {
+    console.error('[GET /warehouses]', err);
+    res.status(500).json({ message: 'فشل تحميل المستودعات' });
+  }
+});
 
 // POST /api/warehouses (create warehouse)
 router.post('/',

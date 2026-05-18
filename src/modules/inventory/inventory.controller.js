@@ -84,6 +84,29 @@ async function getItemsByWarehouse(req, res, next) {
   }
 }
 
+
+
+/**
+ * ✅ GET /api/inventory/warehouses
+ * Get all active warehouses (for dropdowns/modals)
+ */
+async function getWarehouses(req, res, next) {
+  try {
+    const { query } = require('../../db');
+    const result = await query(
+      `SELECT id, warehouse_code, warehouse_name, warehouse_name_ar
+       FROM warehouses 
+       WHERE is_active = true 
+       ORDER BY warehouse_name ASC`
+    );
+    res.status(200).json({
+      data: { warehouses: result.rows }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 /**
  * GET /api/inventory/low-stock
  * Get low stock report
@@ -259,5 +282,6 @@ module.exports = {
   getInventoryDashboard,
   getInventorySummary,
   stockIn,
+  getWarehouses,
   getItemsByWarehouse  
 };

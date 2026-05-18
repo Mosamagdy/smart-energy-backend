@@ -109,7 +109,8 @@ async function updateInvoice(id, data, client = null) {
     'is_tax_invoice',
     'tax_invoice_no',
     'zatca_uuid',
-    'zatca_status'
+    'zatca_status',
+    'warehouse_id' 
   ];
   const keys = Object.keys(data).filter(key => allowedFields.includes(key));
 
