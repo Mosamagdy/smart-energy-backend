@@ -26,14 +26,6 @@ function roleMiddleware(allowedRoles = []) {
       typeof r === 'string' ? r.toLowerCase() : r
     );
 
-    // DEBUG: Log role check
-    console.log('🔍 ROLE CHECK:', {
-      tokenRole: normalizedTokenRole,
-      allowedRoles: normalizedAllowedRoles,
-      hasRole: normalizedAllowedRoles.includes(normalizedTokenRole),
-      fullUser: req.user
-    });
-
     if (!normalizedAllowedRoles.includes(normalizedTokenRole)) {
       const err = new Error('ليس لديك صلاحية للوصول إلى هذا المورد');
       err.statusCode = 403;

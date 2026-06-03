@@ -34,6 +34,14 @@ const PROJECT_READONLY_ROLES = [
   'finance_manager',
 ];
 
+// Roles allowed to view/ send project messages (client support chat)
+const PROJECT_MESSAGES_ROLES = [
+  'super_admin',
+  'general_manager',
+  'sales_manager',
+  'sales_rep'
+];
+
 // Configure multer for project delivery documents
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -134,36 +142,22 @@ router.patch(
   controller.updateProjectStatus
 );
 
+// ============================================================================
+// Project Messages Routes (Client Support Chat)
+// ============================================================================
 
+// GET /api/projects/:id/messages - Get all project messages
+router.get(
+  '/:id(\\d+)/messages',
+  roleMiddleware(PROJECT_MESSAGES_ROLES),
+  controller.getProjectMessages
+);
 
-/**
- * PATCH /api/projects/:id/deliver
- * Mark project as delivered (final status)
- */
-router.patch(
-  '/:id/deliver',
-  roleMiddleware(['super_admin', 'general_manager', 'project_manager']),
-  async (req, res, next) => {
-    try {
-      const projectId = parseInt(req.params.id);
- 
-      if (isNaN(projectId)) {
-        const err = new Error('رقم المشروع غير صحيح');
-        err.statusCode = 400;
-        throw err;
-      }
- 
-      const project = await service.deliverProject(projectId, req.user);
- 
-      res.status(200).json({
-        status: 'success',
-        message: 'تم تسليم المشروع بنجاح',
-        data: { project }
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
+// POST /api/projects/:id/messages - Send a message to client
+router.post(
+  '/:id(\\d+)/messages',
+  roleMiddleware(PROJECT_MESSAGES_ROLES),
+  controller.sendProjectMessage
 );
 
 // ============================================================================

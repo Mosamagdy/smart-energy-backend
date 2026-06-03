@@ -611,6 +611,57 @@ async function getRecentProjects(req, res, next) {
   }
 }
 
+// ============================================================================
+// Project Messages Controllers (Client Support Chat)
+// ============================================================================
+
+/**
+ * GET /api/projects/:id/messages
+ * Get all messages for a project (client support chat)
+ */
+async function getProjectMessages(req, res, next) {
+  try {
+    const messages = await service.getProjectMessages(parseInt(req.params.id), req.user);
+    
+    res.status(200).json({
+      status: 'success',
+      data: { messages }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/projects/:id/messages
+ * Send a message to client
+ */
+async function sendProjectMessage(req, res, next) {
+  try {
+    const { message } = req.body;
+    
+    if (!message || !message.trim()) {
+      const err = new Error('نص الرسالة مطلوب');
+      err.statusCode = 400;
+      throw err;
+    }
+    
+    const newMessage = await service.sendProjectMessage(
+      parseInt(req.params.id),
+      { message },
+      req.user
+    );
+    
+    res.status(201).json({
+      status: 'success',
+      message: 'تم إرسال الرسالة بنجاح',
+      data: newMessage
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createProject,
   getAllProjects,
@@ -641,5 +692,9 @@ module.exports = {
   getPMOStats,
   getProjectProgress,
   getDelayedTasks,
-  getRecentProjects
+  getRecentProjects,
+  
+  // Project Messages
+  getProjectMessages,
+  sendProjectMessage
 };
