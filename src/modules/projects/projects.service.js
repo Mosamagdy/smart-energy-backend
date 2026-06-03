@@ -1199,7 +1199,7 @@ async function getProjectMessages(projectId, currentUser) {
   const allowedRoles = ['super_admin', 'general_manager', 'sales_manager', 'sales_rep'];
   
   if (!allowedRoles.includes(userRole)) {
-    const err = new Error('غير مصرح لك بعرض رسائل المشروع');
+    const err = new Error('غير مصرح لك بعرض رسائل ');
     err.statusCode = 403;
     throw err;
   }
