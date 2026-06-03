@@ -134,6 +134,38 @@ router.patch(
   controller.updateProjectStatus
 );
 
+
+
+/**
+ * PATCH /api/projects/:id/deliver
+ * Mark project as delivered (final status)
+ */
+router.patch(
+  '/:id/deliver',
+  roleMiddleware(['super_admin', 'general_manager', 'project_manager']),
+  async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.id);
+ 
+      if (isNaN(projectId)) {
+        const err = new Error('رقم المشروع غير صحيح');
+        err.statusCode = 400;
+        throw err;
+      }
+ 
+      const project = await service.deliverProject(projectId, req.user);
+ 
+      res.status(200).json({
+        status: 'success',
+        message: 'تم تسليم المشروع بنجاح',
+        data: { project }
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // ============================================================================
 // Project Manager Assignment
 // ============================================================================

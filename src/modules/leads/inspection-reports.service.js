@@ -35,6 +35,24 @@ async function createReport(leadId, data, userId) {
     console.error('[Inspection Report] Failed to update lead status:', statusError.message);
   }
 
+  // ✅ Auto-transition: project in_progress → under_review when inspection report is uploaded
+  try {
+    const { rows: [relatedProject] } = await query(
+      `SELECT id, status FROM projects WHERE lead_id = $1 LIMIT 1`,
+      [leadId]
+    );
+
+    if (relatedProject && relatedProject.status === 'in_progress') {
+      await query(
+        `UPDATE projects SET status = 'under_review', updated_at = NOW() WHERE id = $1`,
+        [relatedProject.id]
+      );
+      console.log(`[Inspection Report] Project ${relatedProject.id} → under_review`);
+    }
+  } catch (projectStatusError) {
+    console.error('[Inspection Report] Failed to update project status:', projectStatusError.message);
+  }
+
   // Notify ALL Administrative heads (dept_head) and GM when report is uploaded
   try {
     const { rows: adminUsers } = await query(`
@@ -54,18 +72,15 @@ async function createReport(leadId, data, userId) {
         priority: 'high'
       };
 
-      // Send notification to each admin user
       for (const admin of adminUsers) {
         await sendNotification(admin.id, 'system', {
           ...notificationData,
           badge_count: 1
         });
-        
         console.log(`[Inspection Report] Notified admin ${admin.full_name} (${admin.role_name}) about new report for lead ${leadId}`);
       }
     }
   } catch (notificationError) {
-    // Don't fail the report creation if notification fails
     console.error('[Inspection Report] Failed to send admin notifications:', notificationError.message);
   }
 
@@ -88,13 +103,11 @@ async function createReport(leadId, data, userId) {
         priority: 'high'
       };
 
-      // Send notification to each quotation specialist
       for (const specialist of quotationSpecialists) {
         await sendNotification(specialist.id, 'system', {
           ...quotationNotification,
           badge_count: 1
         });
-        
         console.log(`[Inspection Report] Notified quotation specialist ${specialist.full_name} about lead ${leadId}`);
       }
     }

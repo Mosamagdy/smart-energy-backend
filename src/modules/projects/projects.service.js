@@ -306,8 +306,14 @@ async function updateProject(id, data, currentUser) {
  * Update project status with workflow validation
  */
 async function updateProjectStatus(id, status, currentUser) {
-  const validStatuses = ['planning', 'in_progress', 'testing', 'completed', 'delivered'];
+  const validStatuses = ['planning', 'in_progress', 'under_review', 'delivered'];
   
+  const statusOrder = {
+    planning: 1,
+    in_progress: 2,
+    under_review: 3,
+    delivered: 4
+  };  
   if (!validStatuses.includes(status)) {
     const err = new Error('حالة المشروع غير صحيحة');
     err.statusCode = 400;
@@ -451,6 +457,9 @@ async function assignProjectManager(projectId, managerUserId, currentUser) {
 
   const updatedProject = await repo.assignProjectManager(projectId, managerUserId);
 
+    // ✅ Auto-transition: planning → in_progress when PM is assigned
+  await repo.updateProjectStatus(projectId, 'in_progress');
+  console.log(`[Project Status] Project ${projectId} → in_progress (PM assigned)`);
   // Notify the assigned manager with detailed message
   await notify({
     user_id: managerUserId,
@@ -492,6 +501,64 @@ async function assignProjectManager(projectId, managerUserId, currentUser) {
 
   return updatedProject;
 }
+
+
+
+async function deliverProject(projectId, currentUser) {
+  const project = await getProjectById(projectId, currentUser);
+ 
+  // Authorization: Only GM, super_admin, or project_manager can deliver
+  const userRole = (currentUser.role || currentUser.role_name || '').toLowerCase();
+  if (!['super_admin', 'general_manager', 'project_manager'].includes(userRole)) {
+    const err = new Error('ليس لديك صلاحية تسليم المشروع');
+    err.statusCode = 403;
+    throw err;
+  }
+ 
+  // Must be in under_review before delivering
+  if (project.status !== 'under_review') {
+    const err = new Error('لا يمكن تسليم المشروع إلا بعد مرحلة قيد المراجعة');
+    err.statusCode = 400;
+    throw err;
+  }
+ 
+  const updated = await repo.updateProjectStatus(projectId, 'delivered');
+ 
+  // Notify GM
+  await notifyRole('general_manager', {
+    title: 'تم تسليم المشروع للعميل',
+    message: `تم تسليم مشروع "${project.name}" بنجاح`,
+    type: 'success',
+    entity_type: 'project',
+    entity_id: projectId
+  });
+ 
+  // Notify finance manager
+  await notifyRole('finance_manager', {
+    title: 'مشروع جاهز للفوترة النهائية',
+    message: `تم تسليم مشروع "${project.name}" - يرجى متابعة المستحقات المالية`,
+    type: 'warning',
+    entity_type: 'project',
+    entity_id: projectId
+  });
+ 
+  // Notify client if exists
+  if (project.client_id) {
+    const { notify } = require('../../utils/notify');
+    await notify({
+      user_id: project.client_id,
+      title: 'تم تسليم مشروعك',
+      message: `تم الانتهاء من مشروع "${project.name}" وتسليمه بنجاح`,
+      type: 'success',
+      entity_type: 'project',
+      entity_id: projectId
+    });
+  }
+ 
+  console.log(`[Project Status] Project ${projectId} → delivered`);
+  return updated;
+}
+ 
 
 /**
  * Assign employees to project (project_manager, dept_head, admin)
@@ -1127,6 +1194,7 @@ module.exports = {
   assignProjectManager,
   assignEmployees,
   getProjectEmployees,
+  deliverProject,
   
   // Materials & Assets
   allocateMaterials,

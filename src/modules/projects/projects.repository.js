@@ -206,6 +206,28 @@ async function assignProjectManager(projectId, managerUserId) {
   return result.rows[0] || null;
 }
 
+
+
+async function calculateProjectProgress(projectId) {
+  const result = await query(
+    `SELECT status FROM projects WHERE id = $1`,
+    [projectId]
+  );
+ 
+  const project = result.rows[0];
+  if (!project) return 0;
+ 
+  const progressMap = {
+    planning: 25,
+    in_progress: 50,
+    under_review: 75,
+    delivered: 100
+  };
+ 
+  return progressMap[project.status] ?? 0;
+}
+
+
 // ============================================================================
 // Project Employees Management
 // ============================================================================
@@ -592,6 +614,7 @@ module.exports = {
   updateProject,
   updateProjectStatus,
   assignProjectManager,
+  calculateProjectProgress,
   
   // Project Employees
   assignEmployeeToProject,
