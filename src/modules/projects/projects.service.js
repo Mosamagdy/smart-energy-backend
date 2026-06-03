@@ -1196,7 +1196,7 @@ async function getProjectMessages(projectId, currentUser) {
   const project = await getProjectById(projectId, currentUser);
   
   const userRole = (currentUser.role || currentUser.role_name || '').toLowerCase();
-  const allowedRoles = ['super_admin', 'general_manager', 'sales_manager', 'sales_rep'];
+  const allowedRoles = ['super_admin', 'general_manager', 'sales_manager', 'sales_repo'];
   
   if (!allowedRoles.includes(userRole)) {
     const err = new Error('غير مصرح لك بعرض رسائل المشروع');
@@ -1208,19 +1208,27 @@ async function getProjectMessages(projectId, currentUser) {
     `SELECT 
       m.id,
       m.project_id,
-      m.sender_id,
-      COALESCE(
-        CASE 
-          WHEN m.sender_role = 'client' THEN m.sender_name
-          ELSE u.first_name || ' ' || u.last_name
-        END,
-        m.sender_name
-      ) as sender_name,
-      m.sender_role,
+      m.client_id,
+      m.sales_rep_id,
       m.message,
-      m.created_at
-     FROM client_portal_messages m
-     LEFT JOIN users u ON u.id = m.sender_id
+      m.is_from_client,
+      m.is_read,
+      m.created_at,
+      CASE 
+        WHEN m.is_from_client THEN cl.first_name || ' ' || cl.last_name
+        ELSE sr.first_name || ' ' || sr.last_name
+      END AS sender_name,
+      CASE 
+        WHEN m.is_from_client THEN 'client'
+        ELSE m.sender_role
+      END AS sender_role,
+      CASE 
+        WHEN m.is_from_client THEN m.client_id
+        ELSE m.sales_rep_id
+      END AS sender_id
+     FROM client_support_messages m
+     LEFT JOIN users cl ON cl.id = m.client_id
+     LEFT JOIN users sr ON sr.id = m.sales_rep_id
      WHERE m.project_id = $1
      ORDER BY m.created_at ASC`,
     [projectId]
@@ -1241,7 +1249,7 @@ async function sendProjectMessage(projectId, messageData, currentUser) {
   const project = await getProjectById(projectId, currentUser);
   
   const userRole = (currentUser.role || currentUser.role_name || '').toLowerCase();
-  const allowedRoles = ['super_admin', 'general_manager', 'sales_manager', 'sales_rep'];
+  const allowedRoles = ['super_admin', 'general_manager', 'sales_manager', 'sales_repo'];
   
   if (!allowedRoles.includes(userRole)) {
     const err = new Error('غير مصرح لك بإرسال رسائل في هذا المشروع');
@@ -1250,23 +1258,31 @@ async function sendProjectMessage(projectId, messageData, currentUser) {
   }
   
   const clientId = project.client_id;
-  
+
   const { rows } = await query(
-    `INSERT INTO client_portal_messages 
-     (project_id, sender_id, sender_name, sender_role, message, created_at)
-     VALUES ($1, $2, $3, $4, $5, NOW())
+    `INSERT INTO client_support_messages 
+     (project_id, client_id, sales_rep_id, message, is_from_client, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, false, NOW(), NOW())
      RETURNING *`,
     [
       projectId,
+      clientId,
       currentUser.id,
-      `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() || currentUser.username,
-      userRole,
       message.trim()
     ]
   );
   
   const newMessage = rows[0];
-  
+
+  // جيب اسم المرسل
+  const { rows: senderRows } = await query(
+    `SELECT first_name || ' ' || last_name AS sender_name FROM users WHERE id = $1`,
+    [currentUser.id]
+  );
+  newMessage.sender_name = senderRows[0]?.sender_name || currentUser.username;
+  newMessage.sender_role = userRole;
+
+  // Socket notification
   if (clientId) {
     const { sendNotification } = require('../../services/socket.service');
     sendNotification(clientId, 'project_message', {
@@ -1275,8 +1291,10 @@ async function sendProjectMessage(projectId, messageData, currentUser) {
       project_id: projectId,
       sender_name: newMessage.sender_name
     });
+  }
 
-    // ✅ الـ notify جوه الـ guard بقى
+  // DB notification
+  if (clientId) {
     await notify({
       user_id: clientId,
       title: `رسالة جديدة من الفريق - مشروع ${project.name}`,
