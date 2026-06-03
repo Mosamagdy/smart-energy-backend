@@ -323,7 +323,6 @@ async function updateProjectStatus(id, status, currentUser) {
   const project = await getProjectById(id, currentUser);
   
   // Status flow validation
-  const statusOrder = { planning: 0, in_progress: 1, testing: 2, completed: 3, delivered: 4 };
   if (statusOrder[status] < statusOrder[project.status]) {
     const err = new Error('لا يمكن التراجع في حالة المشروع');
     err.statusCode = 400;
