@@ -184,19 +184,25 @@ async function getClientInvoiceById(invoiceId, clientId) {
 async function getInvoicePayments(invoiceId, clientId) {
   const sql = `
     SELECT 
-      p.*,
+      pv.id,
+      pv.voucher_number,
+      pv.payment_date,
+      pv.payment_amount,
+      pv.payment_method,
+      pv.currency,
+      pv.status,
+      pv.notes,
       u.first_name || ' ' || u.last_name AS recorded_by_name
-    FROM payments p
-    LEFT JOIN users u ON p.recorded_by = u.id
-    INNER JOIN invoices i ON p.invoice_id = i.id
-    WHERE p.invoice_id = $1 AND i.client_id = $2
-    ORDER BY p.payment_date DESC;
+    FROM payment_vouchers pv
+    LEFT JOIN users u ON pv.created_by = u.id
+    INNER JOIN invoices i ON pv.invoice_id = i.id
+    WHERE pv.invoice_id = $1 AND i.client_id = $2
+    ORDER BY pv.payment_date DESC;
   `;
   
   const result = await query(sql, [invoiceId, clientId]);
   return result.rows;
 }
-
 // ============================================
 // CLIENT MAINTENANCE (Strictly filtered by client_id)
 // ============================================
