@@ -1196,7 +1196,7 @@ async function getProjectMessages(projectId, currentUser) {
   const project = await getProjectById(projectId, currentUser);
   
   const userRole = (currentUser.role || currentUser.role_name || '').toLowerCase();
-  const allowedRoles = ['super_admin', 'general_manager', 'sales_manager', 'sales_repo'];
+  const allowedRoles = ['super_admin', 'general_manager', 'sales_manager', 'sales_rep'];
   
   if (!allowedRoles.includes(userRole)) {
     const err = new Error('غير مصرح لك بعرض رسائل المشروع');
@@ -1249,7 +1249,7 @@ async function sendProjectMessage(projectId, messageData, currentUser) {
   const project = await getProjectById(projectId, currentUser);
   
   const userRole = (currentUser.role || currentUser.role_name || '').toLowerCase();
-  const allowedRoles = ['super_admin', 'general_manager', 'sales_manager', 'sales_repo'];
+  const allowedRoles = ['super_admin', 'general_manager', 'sales_manager', 'sales_rep'];
   
   if (!allowedRoles.includes(userRole)) {
     const err = new Error('غير مصرح لك بإرسال رسائل في هذا المشروع');
