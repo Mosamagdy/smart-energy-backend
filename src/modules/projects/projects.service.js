@@ -1220,7 +1220,7 @@ async function getProjectMessages(projectId, currentUser) {
       END AS sender_name,
       CASE 
         WHEN m.is_from_client THEN 'client'
-        ELSE m.sender_role
+        ELSE 'sales_rep'
       END AS sender_role,
       CASE 
         WHEN m.is_from_client THEN m.client_id
